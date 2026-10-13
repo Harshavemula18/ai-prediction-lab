@@ -70,7 +70,7 @@ The experiments explore:
    ## 🧪 AI Prediction Lab — Experiment Results
 
 ### Experiment 1
-![Experiment 1](screenshots/experiment-1.png)
+Startest.png
 
 ### Experiment 2
 ![Experiment 2](screenshots/experiment-2.png)
