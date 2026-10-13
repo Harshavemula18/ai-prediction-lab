@@ -67,6 +67,26 @@ The experiments explore:
 5. Observing incorrect predictions
 6. Testing different object categories
 
+   ## 🧪 AI Prediction Lab — Experiment Results
+
+### Experiment 1
+![Experiment 1](screenshots/experiment-1.png)
+
+### Experiment 2
+![Experiment 2](screenshots/experiment-2.png)
+
+### Experiment 3
+![Experiment 3](screenshots/experiment-3.png)
+
+### Experiment 4
+![Experiment 4](screenshots/experiment-4.png)
+
+### Experiment 5
+![Experiment 5](screenshots/experiment-5.png)
+
+### Experiment 6
+![Experiment 6](screenshots/experiment-6.png)
+
 ## 💡 Key Learning
 
 AI models learn patterns from training examples and use them to make predictions. A prediction score does not guarantee that the predicted category is correct.
