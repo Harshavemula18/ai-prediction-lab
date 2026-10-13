@@ -69,23 +69,26 @@ The experiments explore:
 
    ## 🧪 AI Prediction Lab — Experiment Results
 
-### Experiment 1
-Startest.png
 
-### Experiment 2
-![Experiment 2](screenshots/experiment-2.png)
+## 🧪 AI Prediction Lab — Experiment Screenshots
 
-### Experiment 3
-![Experiment 3](screenshots/experiment-3.png)
+### 1. Cat Test
+![Cat Test](./Cattest.png)
 
-### Experiment 4
-![Experiment 4](screenshots/experiment-4.png)
+### 2. Laptop Test
+![Laptop Test](./Laptoptest.png)
 
-### Experiment 5
-![Experiment 5](screenshots/experiment-5.png)
+### 3. Star Test
+![Star Test](./Startest.png)
 
-### Experiment 6
-![Experiment 6](screenshots/experiment-6.png)
+### 4. Line Test
+![Line Test](./linetest.png)
+
+### 5. Smiley Face Test
+![Smiley Face Test](./smilefacetest.png)
+
+### 6. Tree Test
+![Tree Test](./treetest.png)
 
 ## 💡 Key Learning
 
