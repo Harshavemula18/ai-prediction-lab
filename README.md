@@ -92,7 +92,7 @@ The experiments explore:
 
 AI models learn patterns from training examples and use them to make predictions. A prediction score does not guarantee that the predicted category is correct.
 
-## 👨‍💻 Author
+## 👨‍💻 Author.
 
 **Sri Harsha Vemula**
 
