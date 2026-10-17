@@ -15,71 +15,100 @@ st.set_page_config(
     layout="centered",
 )
 
-# ---------- DESIGN ----------
+# ---------- BLACK THEME ----------
 st.markdown("""
 <style>
+/* Pure black page background */
 .stApp {
-    background: #f8f9fb;
-    color: #202020;
+    background: #000000;
+    color: #ffffff;
     font-family: Arial, Helvetica, sans-serif;
 }
 
 [data-testid="stHeader"] {
-    background: transparent;
+    background: #000000;
 }
 
+[data-testid="stAppViewContainer"] {
+    background: #000000;
+}
+
+/* Main title */
 h1 {
-    color: #202020 !important;
+    color: #ffffff !important;
     font-family: Arial, Helvetica, sans-serif !important;
     font-weight: 800 !important;
     letter-spacing: -1px;
 }
 
+/* Section headings */
 h2, h3 {
-    color: #202020 !important;
+    color: #ffffff !important;
     font-weight: 700 !important;
 }
 
+/* Text and labels */
 p, label, [data-testid="stCaptionContainer"] {
-    color: #333333 !important;
+    color: #e5e5e5 !important;
     font-family: Arial, Helvetica, sans-serif !important;
 }
 
+/* Predict button */
 div.stButton > button {
-    background: #151515;
-    color: #ffffff;
-    border: 1px solid #151515;
+    background: #ffffff;
+    color: #000000;
+    border: 1px solid #ffffff;
     border-radius: 8px;
-    font-weight: 600;
-    padding: 0.65rem 1rem;
+    font-weight: 700;
+    padding: 0.7rem 1rem;
+    transition: 0.2s ease;
 }
 
 div.stButton > button:hover {
-    background: #333333;
-    color: #ffffff;
-    border-color: #333333;
+    background: #d9d9d9;
+    color: #000000;
+    border-color: #d9d9d9;
 }
 
+/* Dropdown */
 [data-baseweb="select"] > div {
-    background-color: #ffffff;
-    border-color: #d8d8d8;
+    background-color: #171717;
+    border-color: #444444;
     border-radius: 8px;
 }
 
+[data-baseweb="select"] * {
+    color: #ffffff;
+}
+
+/* Prediction metric */
 [data-testid="stMetric"] {
-    background: #ffffff;
-    border: 1px solid #e5e5e5;
+    background: #111111;
+    border: 1px solid #333333;
     border-radius: 10px;
     padding: 16px;
 }
 
+[data-testid="stMetricLabel"],
+[data-testid="stMetricValue"] {
+    color: #ffffff !important;
+}
+
+/* File uploader */
+[data-testid="stFileUploader"] {
+    background: #111111;
+    border-radius: 10px;
+}
+
+/* Divider and footer */
 hr {
-    border-color: #e5e5e5;
+    border-color: #333333;
 }
 
 footer {
-    background: #111111;
+    background: #000000;
 }
+
 </style>
 """, unsafe_allow_html=True)
 
@@ -161,7 +190,7 @@ canvas = st_canvas(
 )
 
 
-# ---------- USER'S INTENDED DRAWING ----------
+# ---------- INTENDED DRAWING ----------
 intended_label = st.selectbox(
     "What were you trying to draw?",
     ["Choose a category..."] + labels,
@@ -181,17 +210,16 @@ if st.button("🔍 Predict", type="primary", use_container_width=True):
             st.warning("Draw something first!")
             st.stop()
 
-        # Put the drawing on a white background.
+        # Place drawing on white background
         image = Image.fromarray(rgba, mode="RGBA")
         white_background = Image.new("RGBA", image.size, "white")
         image = Image.alpha_composite(
             white_background, image
         ).convert("L")
 
-        # Convert dark strokes to bright strokes.
+        # Prepare drawing for the model
         pixels = 255 - np.asarray(image, dtype=np.uint8)
 
-        # Resize to the model's expected 28x28 input.
         image = Image.fromarray(pixels).resize(
             (28, 28), Image.Resampling.LANCZOS
         )
