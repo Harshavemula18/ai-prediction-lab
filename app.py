@@ -15,8 +15,67 @@ st.set_page_config(
     layout="centered",
 )
 
+# Custom background and styling
+st.markdown("""
+<style>
+.stApp {
+    background: linear-gradient(
+        135deg,
+        #0f172a 0%,
+        #172554 50%,
+        #312e81 100%
+    );
+}
+
+[data-testid="stHeader"] {
+    background: transparent;
+}
+
+h1 {
+    color: #93c5fd !important;
+    font-weight: 800 !important;
+}
+
+h2, h3 {
+    color: #bfdbfe !important;
+}
+
+p, label, .stMarkdown {
+    color: #e2e8f0;
+}
+
+div.stButton > button {
+    background: linear-gradient(90deg, #2563eb, #7c3aed);
+    color: white;
+    border: none;
+    border-radius: 12px;
+    font-weight: bold;
+    padding: 0.65rem 1rem;
+}
+
+div.stButton > button:hover {
+    border: 1px solid #93c5fd;
+    color: white;
+}
+
+hr {
+    border-color: #475569;
+}
+
+[data-testid="stMetric"] {
+    background: rgba(30, 41, 59, 0.7);
+    border: 1px solid #475569;
+    border-radius: 12px;
+    padding: 16px;
+}
+</style>
+""", unsafe_allow_html=True)
+
 st.title("🧪 AI Prediction Lab")
-st.write("Draw an object below and let the AI guess your drawing!")
+st.write(
+    "Draw an object, choose what you intended to draw, "
+    "and discover what the AI predicts."
+)
 
 
 @st.cache_resource
@@ -108,10 +167,8 @@ if st.button("🔍 Predict", type="primary", use_container_width=True):
             white_background, image
         ).convert("L")
 
-        # Invert to match the model's expected drawing polarity.
+        # Prepare the image for the model.
         pixels = 255 - np.asarray(image, dtype=np.uint8)
-
-        # Resize to the model's 28x28 input.
         image = Image.fromarray(pixels).resize(
             (28, 28), Image.Resampling.LANCZOS
         )
@@ -140,6 +197,7 @@ if st.button("🔍 Predict", type="primary", use_container_width=True):
 
         st.subheader("📊 Top 5 AI predictions")
         st.bar_chart(predictions)
+
         st.metric("AI's top guess", top_prediction)
         st.write(f"Prediction score: **{top_score:.1%}**")
 
