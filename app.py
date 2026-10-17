@@ -89,9 +89,9 @@ intended_label = st.selectbox(
 )
 
 if st.button("🔍 Predict", type="primary", use_container_width=True):
-    if canvas.image_data is None:
-        st.warning("Draw something first!")
-        st.stop()
+    if canvas is None or canvas.image_data is None:
+    st.warning("Draw something first!")
+    st.stop()
 
     rgba = canvas.image_data.astype(np.uint8)
 
@@ -99,17 +99,15 @@ if st.button("🔍 Predict", type="primary", use_container_width=True):
         st.warning("Draw something first!")
         st.stop()
 
-    # Convert the drawing to grayscale.
     image = Image.fromarray(rgba).convert("RGBA")
     white_background = Image.new("RGBA", image.size, "WHITE")
     image = Image.alpha_composite(white_background, image).convert("L")
 
-    # QuickDraw models generally expect dark strokes on a light background.
-    # Invert so the drawing becomes bright on a dark background.
+    
     pixels = np.asarray(image, dtype=np.uint8)
     pixels = 255 - pixels
 
-    # Resize to the model's input size.
+
     image = Image.fromarray(pixels).resize(
         (28, 28), Image.Resampling.LANCZOS
     )
