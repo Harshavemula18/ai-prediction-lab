@@ -2,12 +2,12 @@
 from pathlib import Path
 
 import streamlit as st
-import streamlit_drawable_canvas
 import numpy as np
 import torch
 from huggingface_hub import hf_hub_download
 from PIL import Image
 from torch import nn
+from streamlit_drawable_canvas import st_canvas
 
 st.set_page_config(
     page_title="AI Prediction Lab",
@@ -17,15 +17,16 @@ st.set_page_config(
 
 st.title("🧪 AI Prediction Lab")
 st.write(
-    "Draw anything on the canvas, choose what you intended to draw, "
-    "and see what the AI predicts!"
+    "Draw an object below, select what you intended to draw, "
+    "and see what the AI predicts."
 )
 
 
 @st.cache_resource
 def load_model():
     labels_path = hf_hub_download(
-        "nateraw/quickdraw", "class_names.txt"
+        repo_id="nateraw/quickdraw",
+        filename="class_names.txt",
     )
     labels = Path(labels_path).read_text().splitlines()
 
@@ -46,8 +47,10 @@ def load_model():
     )
 
     weights_path = hf_hub_download(
-        "nateraw/quickdraw", "pytorch_model.bin"
+        repo_id="nateraw/quickdraw",
+        filename="pytorch_model.bin",
     )
+
     state_dict = torch.load(
         weights_path,
         map_location="cpu",
@@ -63,16 +66,15 @@ try:
     with st.spinner("Loading AI model..."):
         model, labels = load_model()
 except Exception as error:
-    st.error("Could not load the AI model.")
+    st.error("The AI model could not be loaded.")
     st.code(str(error))
     st.stop()
 
 
 st.subheader("🎨 Draw here")
+st.caption("Draw with your mouse or trackpad in the white box.")
 
-st.caption("Use your mouse or trackpad to draw in the white box.")
-
-canvas = streamlit_drawable_canvas.st_canvas(
+canvas = st_canvas(
     fill_color="rgba(255, 255, 255, 0)",
     stroke_width=8,
     stroke_color="#000000",
@@ -89,9 +91,9 @@ intended_label = st.selectbox(
 )
 
 if st.button("🔍 Predict", type="primary", use_container_width=True):
-    if canvas is None or canvas.image_data is None:
-    st.warning("Draw something first!")
-    st.stop()
+    if canvas.image_data is None:
+        st.warning("Draw something first!")
+        st.stop()
 
     rgba = canvas.image_data.astype(np.uint8)
 
@@ -99,15 +101,17 @@ if st.button("🔍 Predict", type="primary", use_container_width=True):
         st.warning("Draw something first!")
         st.stop()
 
-    image = Image.fromarray(rgba).convert("RGBA")
-    white_background = Image.new("RGBA", image.size, "WHITE")
-    image = Image.alpha_composite(white_background, image).convert("L")
+    # Put the drawing on a white background.
+    image = Image.fromarray(rgba, mode="RGBA")
+    white_background = Image.new("RGBA", image.size, "white")
+    image = Image.alpha_composite(
+        white_background, image
+    ).convert("L")
 
-    
-    pixels = np.asarray(image, dtype=np.uint8)
-    pixels = 255 - pixels
+    # Convert dark strokes to bright strokes.
+    pixels = 255 - np.asarray(image, dtype=np.uint8)
 
-
+    # Resize to the model's expected input dimensions.
     image = Image.fromarray(pixels).resize(
         (28, 28), Image.Resampling.LANCZOS
     )
@@ -129,10 +133,10 @@ if st.button("🔍 Predict", type="primary", use_container_width=True):
     top_prediction = next(iter(predictions))
     top_score = predictions[top_prediction]
 
-    st.subheader("📊 AI Predictions")
+    st.subheader("📊 Top 5 AI predictions")
     st.bar_chart(predictions)
 
-    st.metric("Top prediction", top_prediction)
+    st.metric("AI's top guess", top_prediction)
     st.write(f"Prediction score: **{top_score:.1%}**")
 
     if intended_label != "Choose a category...":
@@ -145,8 +149,9 @@ if st.button("🔍 Predict", type="primary", use_container_width=True):
             )
 
     st.caption(
-        "Prediction scores are model outputs, not guarantees of correctness."
+        "Scores reflect the model's outputs and do not guarantee correctness."
     )
 
 st.divider()
 st.caption("Built with Python, Streamlit and PyTorch.")
+
