@@ -1,5 +1,5 @@
+streamlit
 torch
-gradio
 huggingface_hub
 numpy
 pillow
