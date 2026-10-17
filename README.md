@@ -1,100 +1,76 @@
+
 # 🧪 AI Prediction Lab
 
-A browser-based AI application that classifies hand-drawn objects using a pre-trained QuickDraw model.
+### Draw it. Let AI guess it. Discover how it thinks!
 
-## 🚀 Overview
+AI Prediction Lab is an interactive web application where you can draw an object and see what a pre-trained AI model predicts.
 
-AI Prediction Lab allows users to draw objects and observe how an AI model classifies them. It displays the top five predictions, their scores, and whether the highest-scoring prediction matches the intended object.
+Built as a hands-on project to explore AI predictions, confidence scores, and model mistakes.
+
+## 🚀 Live Demo
+
+**Try the application:** [AI Prediction Lab](https://share.streamlit.io/)
 
 ## ✨ Features
 
-- Interactive drawing canvas
-- Pre-trained AI model for object classification
-- Top five predictions with scores
-- Comparison between intended and predicted categories
-- Experiments with correct and incorrect predictions
-- Simple browser-based interface
+- 🎨 Draw objects directly on the website.
+- 🤖 Get AI predictions for your drawings.
+- 📊 View the top five predictions and their scores.
+- 🎯 Compare the AI's guess with what you intended to draw.
+- 🔍 Explore correct and incorrect predictions.
+- 🌐 Access the application online.
 
 ## 🛠️ Technologies Used
 
 - Python
+- Streamlit
 - PyTorch
-- Gradio
 - NumPy
 - Pillow
 - Hugging Face Hub
+- Git and GitHub
 
-## ⚙️ Installation and Setup
+## 🖼️ Experiment Screenshots
 
-### 1. Clone the repository
+### 1. Cat Test
+![Cat Test](./Cattest.png)
 
-```bash
-git clone https://github.com/harshavemula18/ai-prediction-lab.git
-cd ai-prediction-lab
-```
-
-### 2. Create a virtual environment
-
-```bash
-python3 -m venv .venv
-source .venv/bin/activate
-```
-
-### 3. Install dependencies
-
-```bash
-python -m pip install -r requirements.txt
-```
-
-### 4. Run the application
-
-```bash
-python app.py
-```
-
-Open the local URL displayed in the terminal, usually http://127.0.0.1:7860.
-
-The first run requires an internet connection to download the model files.
-
-## 🧪 Experiments
-
-The experiments explore:
-
-1. Recognising a clear drawing
-2. Changing the same drawing
-3. Removing or changing visual features
-4. Testing ambiguous drawings
-5. Observing incorrect predictions
-6. Testing different object categories
-
-   ## 🧪 AI Prediction Lab — Experiment Results
-
-
-## 🧪 AI Prediction Lab — Experiment Screenshots
-
-
-### 1. Laptop Test
+### 2. Laptop Test
 ![Laptop Test](./Laptoptest.png)
 
-### 2. Star Test
+### 3. Star Test
 ![Star Test](./Startest.png)
 
-### 3. Line Test
+### 4. Line Test
 ![Line Test](./linetest.png)
 
-### 4. Smiley Face Test
+### 5. Smiley Face Test
 ![Smiley Face Test](./smilefacetest.png)
 
-### 5. Tree Test
+### 6. Tree Test
 ![Tree Test](./treetest.png)
 
-## 💡 Key Learning
+## 💡 What I Learned
 
-AI models learn patterns from training examples and use them to make predictions. A prediction score does not guarantee that the predicted category is correct.
+- How to use a pre-trained AI model.
+- How to build an interactive Python web application.
+- How to inspect prediction scores.
+- Why AI can sometimes make mistakes.
+- How to deploy and document a project.
 
-## 👨‍💻 Author.
+## 📂 Project Files
 
-**Sri Harsha Vemula**
+- `app.py` — Application and prediction logic.
+- `requirements.txt` — Required Python packages.
+- `.gitignore` — Files excluded from Git tracking.
+- `README.md` — Project information and screenshots.
 
-GitHub: [harshavemula18](https://github.com/harshavemula18)
+## 👨‍💻 About This Project
 
+This project helped me explore AI through practical experiments. Every drawing provided an opportunity to see what the model recognised and where it struggled.
+
+Built with curiosity, code, and a willingness to learn. 🚀
+
+---
+
+⭐ If you find this project interesting, feel free to explore the repository!
