@@ -1,4 +1,5 @@
 streamlit
+streamlit-drawable-canvas
 torch
 huggingface_hub
 numpy
