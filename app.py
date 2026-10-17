@@ -2,22 +2,32 @@
 from pathlib import Path
 
 import streamlit as st
+import streamlit_drawable_canvas
 import numpy as np
 import torch
 from huggingface_hub import hf_hub_download
 from PIL import Image
 from torch import nn
 
-st.set_page_config(page_title="AI Prediction Lab", page_icon="🧪")
+st.set_page_config(
+    page_title="AI Prediction Lab",
+    page_icon="🧪",
+    layout="centered",
+)
 
 st.title("🧪 AI Prediction Lab")
-st.write("Draw an object, choose what you intended to draw, and inspect the AI's predictions.")
+st.write(
+    "Draw anything on the canvas, choose what you intended to draw, "
+    "and see what the AI predicts!"
+)
+
 
 @st.cache_resource
 def load_model():
-    labels = Path(
-        hf_hub_download("nateraw/quickdraw", "class_names.txt")
-    ).read_text().splitlines()
+    labels_path = hf_hub_download(
+        "nateraw/quickdraw", "class_names.txt"
+    )
+    labels = Path(labels_path).read_text().splitlines()
 
     model = nn.Sequential(
         nn.Conv2d(1, 32, 3, padding="same"),
@@ -35,11 +45,13 @@ def load_model():
         nn.Linear(256, len(labels)),
     )
 
-    weights_file = hf_hub_download(
+    weights_path = hf_hub_download(
         "nateraw/quickdraw", "pytorch_model.bin"
     )
     state_dict = torch.load(
-        weights_file, map_location="cpu", weights_only=True
+        weights_path,
+        map_location="cpu",
+        weights_only=True,
     )
     model.load_state_dict(state_dict, strict=False)
     model.eval()
@@ -48,18 +60,27 @@ def load_model():
 
 
 try:
-    with st.spinner("Loading the AI model..."):
+    with st.spinner("Loading AI model..."):
         model, labels = load_model()
 except Exception as error:
-    st.error("The AI model could not be loaded.")
+    st.error("Could not load the AI model.")
     st.code(str(error))
     st.stop()
 
-st.info("Draw your object in a drawing app, save it as a PNG image, and upload it below.")
 
-uploaded_file = st.file_uploader(
-    "Upload your drawing (PNG or JPG)",
-    type=["png", "jpg", "jpeg"],
+st.subheader("🎨 Draw here")
+
+st.caption("Use your mouse or trackpad to draw in the white box.")
+
+canvas = streamlit_drawable_canvas.st_canvas(
+    fill_color="rgba(255, 255, 255, 0)",
+    stroke_width=8,
+    stroke_color="#000000",
+    background_color="#FFFFFF",
+    height=350,
+    width=420,
+    drawing_mode="freedraw",
+    key="ai_prediction_canvas",
 )
 
 intended_label = st.selectbox(
@@ -67,44 +88,67 @@ intended_label = st.selectbox(
     ["Choose a category..."] + labels,
 )
 
-if uploaded_file is not None:
-    image = Image.open(uploaded_file).convert("L")
-    st.image(image, caption="Your drawing", width=300)
+if st.button("🔍 Predict", type="primary", use_container_width=True):
+    if canvas.image_data is None:
+        st.warning("Draw something first!")
+        st.stop()
 
-    if st.button("Predict", type="primary"):
-        image = image.resize((28, 28))
-        pixels = np.asarray(image, dtype=np.float32)
+    rgba = canvas.image_data.astype(np.uint8)
 
-        if pixels.mean() > 127:
-            pixels = 255 - pixels
+    if not np.any(rgba[:, :, 3] > 0):
+        st.warning("Draw something first!")
+        st.stop()
 
-        x = torch.tensor(pixels).unsqueeze(0).unsqueeze(0) / 255.0
+    # Convert the drawing to grayscale.
+    image = Image.fromarray(rgba).convert("RGBA")
+    white_background = Image.new("RGBA", image.size, "WHITE")
+    image = Image.alpha_composite(white_background, image).convert("L")
 
-        with torch.no_grad():
-            output = model(x)
-            probabilities = torch.softmax(output[0], dim=0)
+    # QuickDraw models generally expect dark strokes on a light background.
+    # Invert so the drawing becomes bright on a dark background.
+    pixels = np.asarray(image, dtype=np.uint8)
+    pixels = 255 - pixels
 
-        values, indices = torch.topk(probabilities, 5)
+    # Resize to the model's input size.
+    image = Image.fromarray(pixels).resize(
+        (28, 28), Image.Resampling.LANCZOS
+    )
+    pixels = np.asarray(image, dtype=np.float32)
 
-        predictions = {
-            labels[index.item()]: score.item()
-            for index, score in zip(indices, values)
-        }
+    x = torch.tensor(pixels).unsqueeze(0).unsqueeze(0) / 255.0
 
-        top_prediction = next(iter(predictions))
-        top_score = predictions[top_prediction]
+    with torch.no_grad():
+        output = model(x)
+        probabilities = torch.softmax(output[0], dim=0)
 
-        st.subheader("Top 5 predictions")
-        st.bar_chart(predictions)
+    values, indices = torch.topk(probabilities, 5)
 
-        st.write(f"**AI prediction:** {top_prediction}")
-        st.write(f"**Prediction score:** {top_score:.1%}")
+    predictions = {
+        labels[index.item()]: float(score.item())
+        for index, score in zip(indices, values)
+    }
 
-        if intended_label != "Choose a category...":
-            if top_prediction == intended_label:
-                st.success(f"The prediction matched your intended drawing: {intended_label}")
-            else:
-                st.warning(
-                    f"You intended to draw {intended_label}, "
-                    f"but the AI predicted {top_prediction}."
-                )
+    top_prediction = next(iter(predictions))
+    top_score = predictions[top_prediction]
+
+    st.subheader("📊 AI Predictions")
+    st.bar_chart(predictions)
+
+    st.metric("Top prediction", top_prediction)
+    st.write(f"Prediction score: **{top_score:.1%}**")
+
+    if intended_label != "Choose a category...":
+        if top_prediction == intended_label:
+            st.success("The AI guessed your intended drawing!")
+        else:
+            st.warning(
+                f"You intended **{intended_label}**, "
+                f"but the AI predicted **{top_prediction}**."
+            )
+
+    st.caption(
+        "Prediction scores are model outputs, not guarantees of correctness."
+    )
+
+st.divider()
+st.caption("Built with Python, Streamlit and PyTorch.")
