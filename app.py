@@ -12,23 +12,17 @@ from streamlit_drawable_canvas import st_canvas
 st.set_page_config(
     page_title="AI Prediction Lab",
     page_icon="🧪",
-    layout="centered",
 )
 
 st.title("🧪 AI Prediction Lab")
-st.write(
-    "Draw an object below, select what you intended to draw, "
-    "and see what the AI predicts."
-)
+st.write("Draw directly below and let the AI guess your drawing!")
 
 
 @st.cache_resource
 def load_model():
-    labels_path = hf_hub_download(
-        repo_id="nateraw/quickdraw",
-        filename="class_names.txt",
-    )
-    labels = Path(labels_path).read_text().splitlines()
+    labels = Path(
+        hf_hub_download("nateraw/quickdraw", "class_names.txt")
+    ).read_text().splitlines()
 
     model = nn.Sequential(
         nn.Conv2d(1, 32, 3, padding="same"),
@@ -46,17 +40,13 @@ def load_model():
         nn.Linear(256, len(labels)),
     )
 
-    weights_path = hf_hub_download(
-        repo_id="nateraw/quickdraw",
-        filename="pytorch_model.bin",
+    weights = hf_hub_download(
+        "nateraw/quickdraw", "pytorch_model.bin"
     )
-
-    state_dict = torch.load(
-        weights_path,
-        map_location="cpu",
-        weights_only=True,
+    state = torch.load(
+        weights, map_location="cpu", weights_only=True
     )
-    model.load_state_dict(state_dict, strict=False)
+    model.load_state_dict(state, strict=False)
     model.eval()
 
     return model, labels
@@ -66,13 +56,13 @@ try:
     with st.spinner("Loading AI model..."):
         model, labels = load_model()
 except Exception as error:
-    st.error("The AI model could not be loaded.")
+    st.error("Could not load the AI model.")
     st.code(str(error))
     st.stop()
 
 
 st.subheader("🎨 Draw here")
-st.caption("Draw with your mouse or trackpad in the white box.")
+st.caption("Use your mouse or trackpad inside the white canvas.")
 
 canvas = st_canvas(
     fill_color="rgba(255, 255, 255, 0)",
@@ -83,75 +73,78 @@ canvas = st_canvas(
     width=420,
     drawing_mode="freedraw",
     key="ai_prediction_canvas",
+    update_streamlit=True,
 )
 
-intended_label = st.selectbox(
+intended = st.selectbox(
     "What were you trying to draw?",
     ["Choose a category..."] + labels,
 )
 
 if st.button("🔍 Predict", type="primary", use_container_width=True):
-    if canvas.image_data is None:
-        st.warning("Draw something first!")
-        st.stop()
+    try:
+        # Read the canvas data safely.
+        if canvas is None:
+            st.warning("Draw something first!")
+            st.stop()
 
-    rgba = canvas.image_data.astype(np.uint8)
+        rgba = canvas.image_data
 
-    if not np.any(rgba[:, :, 3] > 0):
-        st.warning("Draw something first!")
-        st.stop()
+        if rgba is None or not np.any(rgba[:, :, 3] > 0):
+            st.warning("Draw something first!")
+            st.stop()
 
-    # Put the drawing on a white background.
-    image = Image.fromarray(rgba, mode="RGBA")
-    white_background = Image.new("RGBA", image.size, "white")
-    image = Image.alpha_composite(
-        white_background, image
-    ).convert("L")
+        # Convert the canvas to grayscale.
+        rgba = rgba.astype(np.uint8)
+        picture = Image.fromarray(rgba, mode="RGBA")
+        white = Image.new("RGBA", picture.size, "white")
+        picture = Image.alpha_composite(white, picture).convert("L")
 
-    # Convert dark strokes to bright strokes.
-    pixels = 255 - np.asarray(image, dtype=np.uint8)
+        # Convert dark strokes to bright strokes for the model.
+        pixels = 255 - np.asarray(picture, dtype=np.uint8)
 
-    # Resize to the model's expected input dimensions.
-    image = Image.fromarray(pixels).resize(
-        (28, 28), Image.Resampling.LANCZOS
-    )
-    pixels = np.asarray(image, dtype=np.float32)
+        picture = Image.fromarray(pixels).resize(
+            (28, 28), Image.Resampling.LANCZOS
+        )
+        pixels = np.asarray(picture, dtype=np.float32)
 
-    x = torch.tensor(pixels).unsqueeze(0).unsqueeze(0) / 255.0
+        tensor = (
+            torch.tensor(pixels)
+            .unsqueeze(0)
+            .unsqueeze(0)
+            / 255.0
+        )
 
-    with torch.no_grad():
-        output = model(x)
-        probabilities = torch.softmax(output[0], dim=0)
+        with torch.no_grad():
+            output = model(tensor)
+            probabilities = torch.softmax(output[0], dim=0)
 
-    values, indices = torch.topk(probabilities, 5)
+        values, indices = torch.topk(probabilities, 5)
 
-    predictions = {
-        labels[index.item()]: float(score.item())
-        for index, score in zip(indices, values)
-    }
+        predictions = {
+            labels[index.item()]: float(score.item())
+            for index, score in zip(indices, values)
+        }
 
-    top_prediction = next(iter(predictions))
-    top_score = predictions[top_prediction]
+        guess = next(iter(predictions))
 
-    st.subheader("📊 Top 5 AI predictions")
-    st.bar_chart(predictions)
+        st.subheader("📊 Top 5 predictions")
+        st.bar_chart(predictions)
+        st.metric("AI's guess", guess)
+        st.write(f"Prediction score: **{predictions[guess]:.1%}**")
 
-    st.metric("AI's top guess", top_prediction)
-    st.write(f"Prediction score: **{top_score:.1%}**")
+        if intended != "Choose a category...":
+            if guess == intended:
+                st.success("The AI guessed correctly!")
+            else:
+                st.warning(
+                    f"You intended **{intended}**, "
+                    f"but the AI guessed **{guess}**."
+                )
 
-    if intended_label != "Choose a category...":
-        if top_prediction == intended_label:
-            st.success("The AI guessed your intended drawing!")
-        else:
-            st.warning(
-                f"You intended **{intended_label}**, "
-                f"but the AI predicted **{top_prediction}**."
-            )
-
-    st.caption(
-        "Scores reflect the model's outputs and do not guarantee correctness."
-    )
+    except Exception as error:
+        st.error("Something went wrong while reading the drawing.")
+        st.code(str(error))
 
 st.divider()
 st.caption("Built with Python, Streamlit and PyTorch.")
-
