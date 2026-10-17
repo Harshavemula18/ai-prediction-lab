@@ -15,16 +15,13 @@ st.set_page_config(
     layout="centered",
 )
 
-# Custom background and styling
+# ---------- DESIGN ----------
 st.markdown("""
 <style>
 .stApp {
-    background: linear-gradient(
-        135deg,
-        #0f172a 0%,
-        #172554 50%,
-        #312e81 100%
-    );
+    background: #f8f9fb;
+    color: #202020;
+    font-family: Arial, Helvetica, sans-serif;
 }
 
 [data-testid="stHeader"] {
@@ -32,45 +29,62 @@ st.markdown("""
 }
 
 h1 {
-    color: #93c5fd !important;
+    color: #202020 !important;
+    font-family: Arial, Helvetica, sans-serif !important;
     font-weight: 800 !important;
+    letter-spacing: -1px;
 }
 
 h2, h3 {
-    color: #bfdbfe !important;
+    color: #202020 !important;
+    font-weight: 700 !important;
 }
 
-p, label, .stMarkdown {
-    color: #e2e8f0;
+p, label, [data-testid="stCaptionContainer"] {
+    color: #333333 !important;
+    font-family: Arial, Helvetica, sans-serif !important;
 }
 
 div.stButton > button {
-    background: linear-gradient(90deg, #2563eb, #7c3aed);
-    color: white;
-    border: none;
-    border-radius: 12px;
-    font-weight: bold;
+    background: #151515;
+    color: #ffffff;
+    border: 1px solid #151515;
+    border-radius: 8px;
+    font-weight: 600;
     padding: 0.65rem 1rem;
 }
 
 div.stButton > button:hover {
-    border: 1px solid #93c5fd;
-    color: white;
+    background: #333333;
+    color: #ffffff;
+    border-color: #333333;
 }
 
-hr {
-    border-color: #475569;
+[data-baseweb="select"] > div {
+    background-color: #ffffff;
+    border-color: #d8d8d8;
+    border-radius: 8px;
 }
 
 [data-testid="stMetric"] {
-    background: rgba(30, 41, 59, 0.7);
-    border: 1px solid #475569;
-    border-radius: 12px;
+    background: #ffffff;
+    border: 1px solid #e5e5e5;
+    border-radius: 10px;
     padding: 16px;
+}
+
+hr {
+    border-color: #e5e5e5;
+}
+
+footer {
+    background: #111111;
 }
 </style>
 """, unsafe_allow_html=True)
 
+
+# ---------- PAGE TITLE ----------
 st.title("🧪 AI Prediction Lab")
 st.write(
     "Draw an object, choose what you intended to draw, "
@@ -78,6 +92,7 @@ st.write(
 )
 
 
+# ---------- LOAD MODEL ----------
 @st.cache_resource
 def load_model():
     labels_path = hf_hub_download(
@@ -112,6 +127,7 @@ def load_model():
         map_location="cpu",
         weights_only=True,
     )
+
     model.load_state_dict(state_dict, strict=False)
     model.eval()
 
@@ -127,6 +143,7 @@ except Exception as error:
     st.stop()
 
 
+# ---------- DRAWING CANVAS ----------
 st.subheader("🎨 Draw here")
 st.caption("Use your mouse or trackpad inside the white canvas.")
 
@@ -143,11 +160,15 @@ canvas = st_canvas(
     return_image_data=True,
 )
 
+
+# ---------- USER'S INTENDED DRAWING ----------
 intended_label = st.selectbox(
     "What were you trying to draw?",
     ["Choose a category..."] + labels,
 )
 
+
+# ---------- PREDICTION ----------
 if st.button("🔍 Predict", type="primary", use_container_width=True):
     try:
         if canvas is None or canvas.image_data is None:
@@ -160,15 +181,17 @@ if st.button("🔍 Predict", type="primary", use_container_width=True):
             st.warning("Draw something first!")
             st.stop()
 
-        # Place the drawing on a white background.
+        # Put the drawing on a white background.
         image = Image.fromarray(rgba, mode="RGBA")
         white_background = Image.new("RGBA", image.size, "white")
         image = Image.alpha_composite(
             white_background, image
         ).convert("L")
 
-        # Prepare the image for the model.
+        # Convert dark strokes to bright strokes.
         pixels = 255 - np.asarray(image, dtype=np.uint8)
+
+        # Resize to the model's expected 28x28 input.
         image = Image.fromarray(pixels).resize(
             (28, 28), Image.Resampling.LANCZOS
         )
@@ -218,5 +241,7 @@ if st.button("🔍 Predict", type="primary", use_container_width=True):
         st.error("Something went wrong while making the prediction.")
         st.code(str(error))
 
+
+# ---------- FOOTER ----------
 st.divider()
 st.caption("Built with Python, Streamlit and PyTorch.")
