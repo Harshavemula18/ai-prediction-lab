@@ -12,17 +12,20 @@ from streamlit_drawable_canvas import st_canvas
 st.set_page_config(
     page_title="AI Prediction Lab",
     page_icon="🧪",
+    layout="centered",
 )
 
 st.title("🧪 AI Prediction Lab")
-st.write("Draw directly below and let the AI guess your drawing!")
+st.write("Draw an object below and let the AI guess your drawing!")
 
 
 @st.cache_resource
 def load_model():
-    labels = Path(
-        hf_hub_download("nateraw/quickdraw", "class_names.txt")
-    ).read_text().splitlines()
+    labels_path = hf_hub_download(
+        repo_id="nateraw/quickdraw",
+        filename="class_names.txt",
+    )
+    labels = Path(labels_path).read_text().splitlines()
 
     model = nn.Sequential(
         nn.Conv2d(1, 32, 3, padding="same"),
@@ -40,13 +43,17 @@ def load_model():
         nn.Linear(256, len(labels)),
     )
 
-    weights = hf_hub_download(
-        "nateraw/quickdraw", "pytorch_model.bin"
+    weights_path = hf_hub_download(
+        repo_id="nateraw/quickdraw",
+        filename="pytorch_model.bin",
     )
-    state = torch.load(
-        weights, map_location="cpu", weights_only=True
+
+    state_dict = torch.load(
+        weights_path,
+        map_location="cpu",
+        weights_only=True,
     )
-    model.load_state_dict(state, strict=False)
+    model.load_state_dict(state_dict, strict=False)
     model.eval()
 
     return model, labels
@@ -74,39 +81,41 @@ canvas = st_canvas(
     drawing_mode="freedraw",
     key="ai_prediction_canvas",
     update_streamlit=True,
+    return_image_data=True,
 )
 
-intended = st.selectbox(
+intended_label = st.selectbox(
     "What were you trying to draw?",
     ["Choose a category..."] + labels,
 )
 
 if st.button("🔍 Predict", type="primary", use_container_width=True):
     try:
-        # Read the canvas data safely.
-        if canvas is None:
+        if canvas is None or canvas.image_data is None:
             st.warning("Draw something first!")
             st.stop()
 
-        rgba = canvas.image_data
+        rgba = canvas.image_data.astype(np.uint8)
 
-        if rgba is None or not np.any(rgba[:, :, 3] > 0):
+        if not np.any(rgba[:, :, 3] > 0):
             st.warning("Draw something first!")
             st.stop()
 
-        # Convert the canvas to grayscale.
-        rgba = rgba.astype(np.uint8)
-        picture = Image.fromarray(rgba, mode="RGBA")
-        white = Image.new("RGBA", picture.size, "white")
-        picture = Image.alpha_composite(white, picture).convert("L")
+        # Place the drawing on a white background.
+        image = Image.fromarray(rgba, mode="RGBA")
+        white_background = Image.new("RGBA", image.size, "white")
+        image = Image.alpha_composite(
+            white_background, image
+        ).convert("L")
 
-        # Convert dark strokes to bright strokes for the model.
-        pixels = 255 - np.asarray(picture, dtype=np.uint8)
+        # Invert to match the model's expected drawing polarity.
+        pixels = 255 - np.asarray(image, dtype=np.uint8)
 
-        picture = Image.fromarray(pixels).resize(
+        # Resize to the model's 28x28 input.
+        image = Image.fromarray(pixels).resize(
             (28, 28), Image.Resampling.LANCZOS
         )
-        pixels = np.asarray(picture, dtype=np.float32)
+        pixels = np.asarray(image, dtype=np.float32)
 
         tensor = (
             torch.tensor(pixels)
@@ -126,24 +135,29 @@ if st.button("🔍 Predict", type="primary", use_container_width=True):
             for index, score in zip(indices, values)
         }
 
-        guess = next(iter(predictions))
+        top_prediction = next(iter(predictions))
+        top_score = predictions[top_prediction]
 
-        st.subheader("📊 Top 5 predictions")
+        st.subheader("📊 Top 5 AI predictions")
         st.bar_chart(predictions)
-        st.metric("AI's guess", guess)
-        st.write(f"Prediction score: **{predictions[guess]:.1%}**")
+        st.metric("AI's top guess", top_prediction)
+        st.write(f"Prediction score: **{top_score:.1%}**")
 
-        if intended != "Choose a category...":
-            if guess == intended:
-                st.success("The AI guessed correctly!")
+        if intended_label != "Choose a category...":
+            if top_prediction == intended_label:
+                st.success("The AI guessed your intended drawing!")
             else:
                 st.warning(
-                    f"You intended **{intended}**, "
-                    f"but the AI guessed **{guess}**."
+                    f"You intended **{intended_label}**, "
+                    f"but the AI predicted **{top_prediction}**."
                 )
 
+        st.caption(
+            "Prediction scores are model outputs, not guarantees of correctness."
+        )
+
     except Exception as error:
-        st.error("Something went wrong while reading the drawing.")
+        st.error("Something went wrong while making the prediction.")
         st.code(str(error))
 
 st.divider()
